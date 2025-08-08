@@ -67,11 +67,6 @@ def sidebar_navigation():
 @st.cache_data(show_spinner=True)
 def load_gsheet_data(credentials_dict):
     try:
-        # Ensure the required keys exist
-        required_keys = ["type", "project_id", "private_key_id", "private_key", "client_email", "client_id"]
-        if not all(key in credentials_dict for key in required_keys):
-            raise ValueError("Invalid credentials file. Required keys are missing.")
-
         creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, SHEET_SCOPE)
         client = gspread.authorize(creds)
         sheet = client.open_by_url(STATIC_SHEET_URL).sheet1
@@ -299,21 +294,18 @@ def appointments_page(df):
     
     # Enhanced display with status badges
     for idx, row in filtered_df.iterrows():
-        with st.expander(f"📅 {row['Name']} - {row['Start Time (12hr)']}"):
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write(f"**Email:** {row['Email']}")
-                st.write(f"**Guest Email:** {row['Guest Email']}")
-                if 'Duration' in row:
-                    st.write(f"**Duration:** {row['Duration']}")
-                if 'Type' in row:
-                    st.write(f"**Type:** {row['Type']}")
-            with col2:
-                status = row['Status']
-                st.markdown(f'<span class="status-badge {status}">{status.upper()}</span>', 
-                           unsafe_allow_html=True)
-                if 'Google Meet Link' in row and row['Google Meet Link']:
-                    st.markdown(f"[🎥 Join Meeting]({row['Google Meet Link']})")
+        st.markdown(f"""
+        <div class="metric-card" style="background: linear-gradient(90deg, #ADD8E6 0%, #87CEEB 100%); text-align: left; padding: 15px; border-radius: 10px; margin-bottom: 10px; color: black;">
+            <h3>📅 {row['Name']}</h3>
+            <p><strong>Status:</strong> <span class="status-badge {row['Status']}">{row['Status'].upper()}</span></p>
+            <p><strong>Start Time:</strong> {row['Start Time (12hr)']}</p>
+            <p><strong>Email:</strong> {row['Email']}</p>
+            <p><strong>Guest Email:</strong> {row['Guest Email']}</p>
+            <p><strong>Duration:</strong> {row['Duration']}</p>
+            <p><strong>Type:</strong> {row['Type']}</p>
+            {f"<p><a href=\"{row['Google Meet Link']}\" target=\"_blank\">🎥 Join Meeting</a></p>" if 'Google Meet Link' in row and row['Google Meet Link'] else ""}
+        </div>
+        """, unsafe_allow_html=True)
     
     # Bulk actions
     st.markdown("---")
@@ -386,7 +378,20 @@ def contacts_page(contacts_df):
     
     # Display contacts
     st.subheader(f"👥 Contacts ({len(filtered_contacts)} results)")
-    st.dataframe(filtered_contacts, use_container_width=True)
+    for idx, row in filtered_contacts.iterrows():
+        st.markdown(f"""
+        <div class="metric-card" style="background: linear-gradient(90deg, #ADD8E6 0%, #87CEEB 100%); text-align: left; padding: 15px; border-radius: 10px; margin-bottom: 10px; color: black;">
+            <h3>👥 {row["Name"]}</h3>
+            <p><strong>Email:</strong> {row["Email"]}</p>
+            <p><strong>Phone:</strong> {row["Phone"]}</p>
+            <p><strong>Company:</strong> {row["Company"]}</p>
+            <p><strong>Position:</strong> {row["Position"]}</p>
+            <p><strong>Lead Source:</strong> {row["Lead Source"]}</p>
+            <p><strong>Tags:</strong> {row["Tags"]}</p>
+            <p><strong>Last Contact:</strong> {row["Last Contact"]}</p>
+            <p><strong>Status:</strong> {row["Status"]}</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Contact actions
     col1, col2, col3 = st.columns(3)
@@ -453,168 +458,100 @@ def leads_page(leads_df):
     with col1:
         stage_filter = st.selectbox(
             "Filter by Stage",
-            options=['All'] + list(leads_df['Stage'].unique()) if 'Stage' in leads_df.columns else ['All']
+            options=["All"] + list(leads_df["Stage"].unique()) if "Stage" in leads_df.columns else ["All"]
         )
     
     with col2:
         score_range = st.slider("Minimum Lead Score", 0, 100, 0)
     
-    # Apply filters
     filtered_leads = leads_df.copy()
-    if stage_filter != 'All' and 'Stage' in leads_df.columns:
-        filtered_leads = filtered_leads[filtered_leads['Stage'] == stage_filter]
-    if 'Lead Score' in leads_df.columns:
-        filtered_leads = filtered_leads[filtered_leads['Lead Score'] >= score_range]
+    if stage_filter != "All":
+        filtered_leads = filtered_leads[filtered_leads["Stage"] == stage_filter]
     
-    # Display leads with enhanced formatting
+    filtered_leads = filtered_leads[filtered_leads["Lead Score"] >= score_range]
+
     for idx, row in filtered_leads.iterrows():
-        with st.expander(f"🎯 {row['Name']} - Score: {row.get('Lead Score', 'N/A')}"):
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.write(f"**Email:** {row['Email']}")
-                st.write(f"**Source:** {row.get('Source', 'N/A')}")
-                st.write(f"**Assigned To:** {row.get('Assigned To', 'N/A')}")
-            
-            with col2:
-                st.write(f"**Stage:** {row.get('Stage', 'N/A')}")
-                st.write(f"**Value:** {row.get('Value', 'N/A')}")
-                st.write(f"**Probability:** {row.get('Probability', 'N/A')}")
-            
-            with col3:
-                st.write(f"**Expected Close:** {row.get('Expected Close', 'N/A')}")
-                if st.button(f"📞 Contact {row['Name']}", key=f"contact_{idx}"):
-                    st.success(f"Contact action initiated for {row['Name']}")
+        st.markdown(f"""
+        <div class="metric-card" style="background: linear-gradient(90deg, #ADD8E6 0%, #87CEEB 100%); text-align: left; padding: 15px; border-radius: 10px; margin-bottom: 10px; color: black;">
+            <h3>🎯 {row["Name"]}</h3>
+            <p><strong>Lead ID:</strong> {row["Lead ID"]}</p>
+            <p><strong>Email:</strong> {row["Email"]}</p>
+            <p><strong>Lead Score:</strong> {row["Lead Score"]}</p>
+            <p><strong>Stage:</strong> {row["Stage"]}</p>
+            <p><strong>Source:</strong> {row["Source"]}</p>
+            <p><strong>Value:</strong> {row["Value"]}</p>
+            <p><strong>Probability:</strong> {row["Probability"]}</p>
+            <p><strong>Expected Close:</strong> {row["Expected Close"]}</p>
+            <p><strong>Assigned To:</strong> {row["Assigned To"]}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Lead actions
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.download_button(
+            "⬇️ Export Leads",
+            data=filtered_leads.to_csv(index=False),
+            file_name=f"leads_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv"
+        )
+    with col2:
+        if st.button("📞 Qualify Selected Leads"):
+            st.success(f"{len(filtered_leads)} leads would be marked as 'Qualified'")
 
 # ---------- Analytics Page ----------
 def analytics_page(appointments_df, contacts_df, leads_df):
-    st.header("📈 Analytics Dashboard")
+    st.header("📈 CRM Analytics")
     
-    # Time-based analytics
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("📅 Appointments Over Time")
-        # Mock time series data
-        dates = pd.date_range(start='2025-07-01', end='2025-07-31', freq='D')
-        appointment_counts = np.random.randint(0, 5, len(dates))
-        time_series_df = pd.DataFrame({'Date': dates, 'Appointments': appointment_counts})
-        
-        fig = px.line(time_series_df, x='Date', y='Appointments',
-                     title="Daily Appointment Bookings")
+    st.subheader("Appointment Trends")
+    if 'Start Time (24hr)' in appointments_df.columns:
+        appointments_df['Start Time (24hr)'] = pd.to_datetime(appointments_df['Start Time (24hr)'])
+        appointments_by_day = appointments_df.groupby(appointments_df['Start Time (24hr)'].dt.date).size().reset_index(name='Count')
+        appointments_by_day.columns = ['Date', 'Count']
+        fig = px.line(appointments_by_day, x='Date', y='Count', title='Appointments Over Time')
         st.plotly_chart(fig, use_container_width=True)
     
-    with col2:
-        st.subheader("🎯 Lead Conversion Funnel")
-        funnel_data = {
-            'Stage': ['Leads', 'Qualified', 'Proposals', 'Closed'],
-            'Count': [100, 60, 30, 15]
-        }
-        fig = px.funnel(funnel_data, x='Count', y='Stage')
+    st.subheader("Lead Source Performance")
+    if 'Source' in leads_df.columns:
+        lead_source_counts = leads_df['Source'].value_counts().reset_index(name='Count')
+        lead_source_counts.columns = ['Source', 'Count']
+        fig = px.bar(lead_source_counts, x='Source', y='Count', title='Leads by Source')
         st.plotly_chart(fig, use_container_width=True)
     
-    # Performance metrics
-    st.subheader("🏆 Performance Metrics")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("📊 Conversion Rate", "15%", delta="2.1%")
-        st.metric("⏱️ Avg. Response Time", "2.3 hours", delta="-0.5 hours")
-    
-    with col2:
-        st.metric("💰 Revenue This Month", "$45,000", delta="$12,000")
-        st.metric("📞 Calls Made", "127", delta="23")
-    
-    with col3:
-        st.metric("✉️ Email Open Rate", "34%", delta="4.2%")
-        st.metric("🎯 Lead Quality Score", "78", delta="5")
-    
-    # Advanced analytics
-    st.subheader("🔍 Advanced Analytics")
-    
-    tab1, tab2, tab3 = st.tabs(["Lead Sources", "Revenue Forecast", "Activity Heatmap"])
-    
-    with tab1:
-        if 'Lead Source' in contacts_df.columns:
-            source_data = contacts_df['Lead Source'].value_counts()
-            fig = px.bar(x=source_data.index, y=source_data.values,
-                        title="Contacts by Lead Source")
-            st.plotly_chart(fig, use_container_width=True)
-    
-    with tab2:
-        # Mock revenue forecast
-        forecast_dates = pd.date_range(start='2025-08-01', end='2025-12-31', freq='M')
-        forecast_revenue = [50000, 55000, 60000, 58000, 65000]
-        forecast_df = pd.DataFrame({'Month': forecast_dates, 'Projected Revenue': forecast_revenue})
-        
-        fig = px.line(forecast_df, x='Month', y='Projected Revenue',
-                     title="Revenue Forecast")
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with tab3:
-        # Mock activity heatmap data
-        activities = ['Calls', 'Emails', 'Meetings', 'Proposals']
-        days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
-        activity_data = np.random.randint(1, 10, (len(activities), len(days)))
-        
-        fig = px.imshow(activity_data, 
-                       x=days, y=activities,
-                       title="Weekly Activity Heatmap",
-                       color_continuous_scale="Blues")
+    st.subheader("Conversion Probability by Lead Stage")
+    if 'Stage' in leads_df.columns and 'Probability' in leads_df.columns:
+        # Convert 'Probability' to numeric, handling '%' sign
+        leads_df['Probability_Numeric'] = leads_df['Probability'].str.replace('%', '').astype(float) / 100
+        conversion_by_stage = leads_df.groupby('Stage')['Probability_Numeric'].mean().reset_index()
+        conversion_by_stage.columns = ['Stage', 'Average Probability']
+        fig = px.bar(conversion_by_stage, x='Stage', y='Average Probability', 
+                     title='Average Conversion Probability by Lead Stage')
         st.plotly_chart(fig, use_container_width=True)
 
 # ---------- Settings Page ----------
 def settings_page():
-    st.header("⚙️ CRM Settings")
+    st.header("⚙️ Settings")
+    st.subheader("Integrations")
     
-    tab1, tab2, tab3 = st.tabs(["General", "Notifications", "Integrations"])
+    integrations = [
+        {"name": "Google Calendar", "status": "Connected", "color": "green"},
+        {"name": "Outlook", "status": "Not Connected", "color": "red"},
+        {"name": "Slack", "status": "Connected", "color": "green"},
+        {"name": "Zoom", "status": "Not Connected", "color": "red"},
+        {"name": "Mailchimp", "status": "Connected", "color": "green"}
+    ]
     
-    with tab1:
-        st.subheader("🔧 General Settings")
-        
-        col1, col2 = st.columns(2)
+    for integration in integrations:
+        col1, col2, col3 = st.columns([3, 2, 1])
         with col1:
-            st.text_input("Company Name", value="Your Company")
-            st.selectbox("Time Zone", ["UTC", "EST", "PST", "CST"])
-            st.selectbox("Date Format", ["MM/DD/YYYY", "DD/MM/YYYY", "YYYY-MM-DD"])
-        
+            st.write(f"**{integration['name']}**")
         with col2:
-            st.selectbox("Currency", ["USD", "EUR", "GBP", "CAD"])
-            st.number_input("Default Meeting Duration (minutes)", value=30)
-            st.selectbox("Business Hours", ["9 AM - 5 PM", "8 AM - 6 PM", "24/7"])
-    
-    with tab2:
-        st.subheader("🔔 Notification Settings")
-        
-        st.checkbox("Email notifications for new leads", value=True)
-        st.checkbox("SMS alerts for urgent appointments", value=False)
-        st.checkbox("Daily activity digest", value=True)
-        st.checkbox("Weekly performance report", value=True)
-        
-        st.selectbox("Reminder frequency", ["15 minutes", "30 minutes", "1 hour", "2 hours"])
-    
-    with tab3:
-        st.subheader("🔗 Integrations")
-        
-        integrations = [
-            {"name": "Google Calendar", "status": "Connected", "color": "green"},
-            {"name": "Outlook", "status": "Not Connected", "color": "red"},
-            {"name": "Slack", "status": "Connected", "color": "green"},
-            {"name": "Zoom", "status": "Not Connected", "color": "red"},
-            {"name": "Mailchimp", "status": "Connected", "color": "green"}
-        ]
-        
-        for integration in integrations:
-            col1, col2, col3 = st.columns([3, 2, 1])
-            with col1:
-                st.write(f"**{integration['name']}**")
-            with col2:
-                st.markdown(f"<span style='color: {integration['color']}'>{integration['status']}</span>", 
-                           unsafe_allow_html=True)
-            with col3:
-                action = "Disconnect" if integration['status'] == "Connected" else "Connect"
-                st.button(action, key=f"{integration['name']}_action")
+            st.markdown(f"<span style='color: {integration['color']}'>{integration['status']}</span>", 
+                       unsafe_allow_html=True)
+        with col3:
+            action = "Disconnect" if integration['status'] == "Connected" else "Connect"
+            st.button(action, key=f"{integration['name']}_action")
 
 # ---------- Main Application Logic ----------
 def main():
@@ -669,3 +606,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
