@@ -6,7 +6,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 # ---------- Config ----------
 SHEET_SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-STATIC_SHEET_URL = "YOUR_GOOGLE_SHEET_URL"
+STATIC_SHEET_URL = "https://docs.google.com/spreadsheets/d/1LFfNwb9lRQpIosSEvV3O6zIwymUIWeG9L_k7cxw1jQs/edit?gid=0#gid=0"
 DEFAULT_CREDENTIALS_FILE = "service_account.json"  # Local file path
 
 # ---------- Sidebar Navigation ----------
