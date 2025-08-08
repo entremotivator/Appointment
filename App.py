@@ -67,11 +67,17 @@ def sidebar_navigation():
 @st.cache_data(show_spinner=True)
 def load_gsheet_data(credentials_dict):
     try:
+        # Ensure the required keys exist
+        required_keys = ["type", "project_id", "private_key_id", "private_key", "client_email", "client_id"]
+        if not all(key in credentials_dict for key in required_keys):
+            raise ValueError("Invalid credentials file. Required keys are missing.")
+
         creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, SHEET_SCOPE)
         client = gspread.authorize(creds)
         sheet = client.open_by_url(STATIC_SHEET_URL).sheet1
         data = sheet.get_all_records()
         return pd.DataFrame(data)
+
     except Exception as e:
         st.error(f"Error loading Google Sheets data: {e}")
         return None
